@@ -1,23 +1,31 @@
-use std::path;
+use std::{error::Error, fs, path};
 
 pub struct Dockerfile {
     pub path: String,
     pub content: String,
 }
 
+pub struct Image {
+    pub name: String,
+    pub tag: String,
+}
+
+pub struct ValidationResult {
+    pub invalid_images: Vec<Image>,
+}
+
 impl Dockerfile {
-    pub fn new(path: path::PathBuf) -> Self {
-        Self {
+    pub fn new(path: path::PathBuf) -> Result<Self, Box<dyn Error>> {
+        let dockerfile = Self {
             path: String::from(path.to_str().unwrap()),
-            content: Self::read(path),
+            content: fs::read_to_string(path)?,
+        };
+        Ok(dockerfile)
+    }
+
+    pub fn validate(&self) -> ValidationResult {
+        ValidationResult {
+            invalid_images: vec![],
         }
-    }
-
-    pub fn validate(&self) -> bool {
-        true
-    }
-
-    fn read(path: path::PathBuf) -> String {
-        String::from("content")
     }
 }

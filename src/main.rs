@@ -1,49 +1,37 @@
 mod dockerfile;
 
-use dockerfile::Dockerfile;
+use dockerfile::{Dockerfile, ValidationResult};
 use glob::glob;
-use std::process;
-
-#[derive(Debug, PartialEq)]
-enum Status {
-    Skip,
-    Pass,
-    Fail,
-}
+use std::{error::Error, process};
 
 fn main() {
-    let dockerfiles = get_dockerfiles();
-
-    let status = match dockerfiles.len() {
-        0 => Status::Skip,
-        _ => validate_dockerfiles(&dockerfiles),
+    let dockerfiles = get_dockerfiles().expect("Failed to get Dockerfiles");
+    if dockerfiles.is_empty() {
+        skip();
     };
 
-    match status {
-        Status::Skip => skip(),
-        Status::Pass => pass(),
-        Status::Fail => fail(&dockerfiles),
+    let results = validate_dockerfiles(&dockerfiles);
+    if results
+        .iter()
+        .all(|result| result.1.invalid_images.is_empty())
+    {
+        pass();
     }
+
+    fail(&results);
 }
 
-fn get_dockerfiles() -> Vec<Dockerfile> {
-    return glob("**/Dockerfile")
-        .unwrap()
-        .map(|path| Dockerfile::new(path.unwrap()))
-        .collect();
+fn get_dockerfiles() -> Result<Vec<Dockerfile>, Box<dyn Error>> {
+    glob("**/Dockerfile")?
+        .map(|path| Dockerfile::new(path?))
+        .collect()
 }
 
-fn validate_dockerfiles(dockerfiles: &[Dockerfile]) -> Status {
-    let results: Vec<bool> = dockerfiles
-        .into_iter()
-        .map(|dockerfile| dockerfile.validate())
-        .collect();
-
-    if results.into_iter().all(|result| result == true) {
-        Status::Pass
-    } else {
-        Status::Fail
-    }
+fn validate_dockerfiles(dockerfiles: &[Dockerfile]) -> Vec<(&Dockerfile, ValidationResult)> {
+    dockerfiles
+        .iter()
+        .map(|dockerfile| (dockerfile, dockerfile.validate()))
+        .collect()
 }
 
 fn skip() {
@@ -56,11 +44,15 @@ fn pass() {
     process::exit(0);
 }
 
-fn fail(dockerfiles: &[Dockerfile]) {
+fn fail(results: &[(&Dockerfile, ValidationResult)]) {
     println!("[FAIL] Found Dockerfiles not using versioned images.");
-    for dockerfile in dockerfiles {
-        println!("{}: {}", dockerfile.path, dockerfile.content);
-    }
+    results.iter().for_each(|result| {
+        println!("{}:", result.0.path);
+        result.1.invalid_images.iter().for_each(|image| {
+            println!("- {}:{}", image.name, image.tag);
+        });
+        println!();
+    });
     process::exit(1);
 }
 
@@ -70,16 +62,8 @@ mod tests {
 
     #[test]
     fn test_get_dockerfiles() {
-        let dockerfiles = get_dockerfiles();
+        let dockerfiles = get_dockerfiles().expect("Failed to get Dockerfiles");
 
         assert_eq!(dockerfiles.len(), 2);
-    }
-
-    #[test]
-    fn test_validate_dockerfiles() {
-        let dockerfiles: Vec<Dockerfile> = vec![];
-        let result = validate_dockerfiles(&dockerfiles);
-
-        assert_eq!(result, Status::Pass);
     }
 }
