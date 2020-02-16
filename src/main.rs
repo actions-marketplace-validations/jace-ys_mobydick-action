@@ -5,24 +5,21 @@ use glob::glob;
 use std::{error::Error, process};
 
 fn main() {
-    let dockerfiles = get_dockerfiles().expect("Failed to get Dockerfiles");
+    let dockerfiles = get_dockerfiles().expect("[ERROR] Failed to get Dockerfiles.");
     if dockerfiles.is_empty() {
         skip();
     };
 
-    let results = validate_dockerfiles(&dockerfiles);
-    if results
-        .iter()
-        .all(|result| result.1.invalid_images.is_empty())
-    {
+    let invalid = validate_dockerfiles(&dockerfiles);
+    if invalid.is_empty() {
         pass();
     }
 
-    fail(&results);
+    fail(&invalid);
 }
 
 fn get_dockerfiles() -> Result<Vec<Dockerfile>, Box<dyn Error>> {
-    glob("**/Dockerfile")?
+    glob("**/*Dockerfile*")?
         .map(|path| Dockerfile::new(path?))
         .collect()
 }
@@ -31,6 +28,7 @@ fn validate_dockerfiles(dockerfiles: &[Dockerfile]) -> Vec<(&Dockerfile, Validat
     dockerfiles
         .iter()
         .map(|dockerfile| (dockerfile, dockerfile.validate()))
+        .filter(|result| !result.1.invalid_images.is_empty())
         .collect()
 }
 
@@ -49,7 +47,11 @@ fn fail(results: &[(&Dockerfile, ValidationResult)]) {
     results.iter().for_each(|result| {
         println!("{}:", result.0.path);
         result.1.invalid_images.iter().for_each(|image| {
-            println!("- {}:{}", image.name, image.tag);
+            let tag = match &image.tag {
+                Some(t) => format!(":{}", t),
+                None => String::new(),
+            };
+            println!("- {}{}", image.repository, tag);
         });
         println!();
     });
@@ -62,8 +64,7 @@ mod tests {
 
     #[test]
     fn test_get_dockerfiles() {
-        let dockerfiles = get_dockerfiles().expect("Failed to get Dockerfiles");
-
+        let dockerfiles = get_dockerfiles().unwrap();
         assert_eq!(dockerfiles.len(), 2);
     }
 }
