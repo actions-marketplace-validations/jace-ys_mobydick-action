@@ -1,10 +1,19 @@
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Regex, RegexSetBuilder};
 use std::{collections::HashSet, error::Error, fs, path};
 
 lazy_static! {
     static ref FROM_DIRECTIVE: regex::Regex =
-        Regex::new(r"(?i)^FROM\s([^\s]+)?(?:\sAS\s)?([\w+]+)?").unwrap();
+        Regex::new(r"(?i)^FROM\s(?P<image>[^\s]+)?(?:\sAS\s)?(?P<stage>[\w+]+)?").unwrap();
+    static ref VERSION_REGEX: &'static str = r"v?([0-9]+(?:(?:\.[a-z0-9]+)|(?:-(?:kb)?[0-9]+))*)";
+    static ref TAG_REGEX: regex::RegexSet = RegexSetBuilder::new(&[
+        format!(r"{}(-[a-z0-9.\-]+)?", *VERSION_REGEX),
+        format!(r"([a-z0-9.\-]+-)?{}", *VERSION_REGEX),
+        format!(r"([a-z\-]+-)?{}(-[a-z\-]+)?", *VERSION_REGEX),
+    ])
+    .case_insensitive(true)
+    .build()
+    .unwrap();
 }
 
 pub struct Dockerfile {
@@ -30,13 +39,13 @@ impl Dockerfile {
 
         let stages: HashSet<_> = from
             .iter()
-            .filter_map(|line| line.get(2))
+            .filter_map(|line| line.name("stage"))
             .map(|stage| stage.as_str())
             .collect();
 
-        let images = from
+        let images: Vec<_> = from
             .iter()
-            .filter_map(|line| line.get(1))
+            .filter_map(|line| line.name("image"))
             .filter(|image| stages.get(image.as_str()).is_none())
             .map(|image| self.parse_image_name(image.as_str()))
             .collect();
@@ -56,12 +65,25 @@ impl Dockerfile {
     }
 
     pub fn validate(&self) -> ValidationResult {
+        let invalid_images: HashSet<_> = self.validate_image_tags();
+
         ValidationResult {
-            invalid_images: self.images(),
+            invalid_images: invalid_images.into_iter().collect(),
         }
+    }
+
+    fn validate_image_tags(&self) -> HashSet<Image> {
+        self.images()
+            .into_iter()
+            .filter(|image| match &image.tag {
+                Some(tag) => !TAG_REGEX.is_match(tag.as_str()),
+                None => true,
+            })
+            .collect()
     }
 }
 
+#[derive(Hash, Eq, PartialEq)]
 pub struct Image {
     pub repository: String,
     pub tag: Option<String>,

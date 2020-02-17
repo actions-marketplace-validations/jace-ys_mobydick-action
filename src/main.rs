@@ -47,11 +47,11 @@ fn fail(results: &[(&Dockerfile, ValidationResult)]) {
     results.iter().for_each(|result| {
         println!("{}:", result.0.path);
         result.1.invalid_images.iter().for_each(|image| {
-            let tag = match &image.tag {
-                Some(t) => format!(":{}", t),
+            let image_tag = match &image.tag {
+                Some(tag) => format!(":{}", tag),
                 None => String::new(),
             };
-            println!("- {}{}", image.repository, tag);
+            println!("- {}{}", image.repository, image_tag);
         });
         println!();
     });
