@@ -61,10 +61,17 @@ fn fail(results: &[(&Dockerfile, ValidationResult)]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{fs, path};
 
     #[test]
     fn test_get_dockerfiles() {
         let dockerfiles = get_dockerfiles().unwrap();
-        assert_eq!(dockerfiles.len(), 2);
+
+        assert_eq!(dockerfiles.len(), 1);
+        assert_eq!(dockerfiles[0].path, "Dockerfile");
+        assert_eq!(
+            dockerfiles[0].content,
+            fs::read_to_string(path::Path::new("Dockerfile")).unwrap()
+        )
     }
 }
