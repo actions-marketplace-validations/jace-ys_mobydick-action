@@ -28,7 +28,7 @@ fn validate_dockerfiles(dockerfiles: &[Dockerfile]) -> Vec<(&Dockerfile, Validat
     dockerfiles
         .iter()
         .map(|dockerfile| (dockerfile, dockerfile.validate()))
-        .filter(|result| !result.1.invalid_images.is_empty())
+        .filter(|(_, result)| !result.invalid_images.is_empty())
         .collect()
 }
 
@@ -44,9 +44,9 @@ fn pass() {
 
 fn fail(results: &[(&Dockerfile, ValidationResult)]) {
     println!("[FAIL] Found Dockerfiles not using versioned images.");
-    results.iter().for_each(|result| {
-        println!("{}:", result.0.path);
-        result.1.invalid_images.iter().for_each(|image| {
+    results.iter().for_each(|(dockerfile, result)| {
+        println!("{}:", dockerfile.path.display());
+        result.invalid_images.iter().for_each(|image| {
             let image_tag = match &image.tag {
                 Some(tag) => format!(":{}", tag),
                 None => String::new(),
@@ -61,17 +61,17 @@ fn fail(results: &[(&Dockerfile, ValidationResult)]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, path};
+    use std::{fs, path::PathBuf};
 
     #[test]
     fn test_get_dockerfiles() {
         let dockerfiles = get_dockerfiles().unwrap();
 
         assert_eq!(dockerfiles.len(), 1);
-        assert_eq!(dockerfiles[0].path, "Dockerfile");
+        assert_eq!(dockerfiles[0].path, PathBuf::from("Dockerfile"));
         assert_eq!(
             dockerfiles[0].content,
-            fs::read_to_string(path::Path::new("Dockerfile")).unwrap()
+            fs::read_to_string(PathBuf::from("Dockerfile")).unwrap()
         )
     }
 }

@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use regex::{Regex, RegexSetBuilder};
-use std::{collections::HashSet, error::Error, fs, path};
+use std::{collections::HashSet, error::Error, fs, path::PathBuf};
 
 lazy_static! {
     static ref FROM_DIRECTIVE: regex::Regex =
@@ -20,14 +20,14 @@ lazy_static! {
 }
 
 pub struct Dockerfile {
-    pub path: String,
+    pub path: PathBuf,
     pub content: String,
 }
 
 impl Dockerfile {
-    pub fn new(path: path::PathBuf) -> Result<Self, Box<dyn Error>> {
+    pub fn new(path: PathBuf) -> Result<Self, Box<dyn Error>> {
         let dockerfile = Self {
-            path: String::from(path.to_str().unwrap()),
+            path: path.to_owned(),
             content: fs::read_to_string(path)?,
         };
         Ok(dockerfile)
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_dockerfile_images_none() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM"),
         };
 
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_dockerfile_images_one() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM rust:latest"),
         };
         let images = dockerfile.images();
@@ -129,7 +129,7 @@ mod tests {
     #[test]
     fn test_dockerfile_images_sha() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM rust:8d81c7bb21fa44bf6dffa1c5c3eff9be08dcd81a"),
         };
         let images = dockerfile.images();
@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn test_dockerfile_images_multiple() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:latest
                 FROM alpine",
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn test_dockerfile_images_multistage_copy() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:latest AS builder
                 FROM alpine
@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn test_dockerfile_images_multistage_alias() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:latest AS first
                 FROM first AS second
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_none() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM rust"),
         };
         let invalid_images = dockerfile.validate().invalid_images;
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_latest() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM rust:latest"),
         };
         let invalid_images = dockerfile.validate().invalid_images;
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_semver() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:1.41
                 FROM alpine:3.11",
@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_sha() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM rust:8d81c7bb21fa44bf6dffa1c5c3eff9be08dcd81a"),
         };
         let invalid_images = dockerfile.validate().invalid_images;
@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_date() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM ubuntu:20200112"),
         };
         let invalid_images = dockerfile.validate().invalid_images;
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_datenumber() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM eu.gcr.io/test/repository:2020011201"),
         };
         let invalid_images = dockerfile.validate().invalid_images;
@@ -281,7 +281,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_semver_and_latest() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:1.41
                 FROM alpine:latest",
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_sha_and_date() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:8d81c7bb21fa44bf6dffa1c5c3eff9be08dcd81a
                 FROM ubuntu:20200112",
@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_semver_and_datenumber() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:1.41
                 FROM eu.gcr.io/test/repository:2020011201",
@@ -323,7 +323,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_prefix() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM ubuntu:bionic-20200112"),
         };
         let invalid_images = dockerfile.validate().invalid_images;
@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_suffix() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(r"FROM ubuntu:20200112-bionic"),
         };
         let invalid_images = dockerfile.validate().invalid_images;
@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_multistage_copy() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:latest AS builder
                 FROM alpine
@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn test_dockerfile_image_tags_multistage_alias() {
         let dockerfile = Dockerfile {
-            path: String::new(),
+            path: PathBuf::new(),
             content: String::from(
                 r"FROM rust:1.41 AS first
                 FROM first AS second
