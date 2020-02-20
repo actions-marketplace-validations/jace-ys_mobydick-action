@@ -1,0 +1,5 @@
+name: Mobydick
+description: Run an audit check to validate Dockerfile versions
+runs:
+  using: docker
+  image: Dockerfile
