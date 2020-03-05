@@ -19,13 +19,15 @@ type RepositoriesService interface {
 type actionManager struct {
 	organisation        string
 	logger              log.Logger
+	workflowFile        []byte
 	repositoriesService RepositoriesService
 }
 
-func NewActionManager(ctx context.Context, organisation string, logger log.Logger, repositories RepositoriesService) *actionManager {
+func NewActionManager(ctx context.Context, organisation string, logger log.Logger, workflowFile []byte, repositories RepositoriesService) *actionManager {
 	return &actionManager{
 		organisation:        organisation,
 		logger:              logger,
+		workflowFile:        workflowFile,
 		repositoriesService: repositories,
 	}
 }
@@ -68,4 +70,18 @@ func (am *actionManager) ListRepositories(ctx context.Context, private bool) ([]
 	}
 
 	return list, nil
+}
+
+func (am *actionManager) CreateFile(ctx context.Context, repository, path string, content []byte) error {
+	opts := &github.RepositoryContentFileOptions{
+		Message: github.String("This is my commit message"),
+		Content: content,
+	}
+
+	_, _, err := am.repositoriesService.CreateFile(ctx, am.organisation, repository, path, opts)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

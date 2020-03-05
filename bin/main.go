@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 
 	"github.com/go-kit/kit/log"
@@ -20,6 +21,7 @@ var (
 
 	distributeCmd = actionCmd.Command("distribute", "Distribute this GitHub Action to all repositories in the organisation.")
 	concurrency   = distributeCmd.Flag("concurrency", "Size of worker pool to perform concurrent work.").Default("5").Int()
+	file          = distributeCmd.Flag("file", "Workflow file to commit into repositories.").Default("mobydick.yaml").String()
 	private       = distributeCmd.Flag("private", "Only distribute GitHub Action to private repositories (default: false).").Default("false").Bool()
 )
 
@@ -39,7 +41,13 @@ func main() {
 	)
 	githubClient := github.NewClient(oauth2.NewClient(ctx, ts))
 
-	actionManager := action.NewActionManager(ctx, *organisation, logger, githubClient.Repositories)
+	workflowFile, err := ioutil.ReadFile(*file)
+	if err != nil {
+		level.Error(logger).Log("error", err)
+		os.Exit(1)
+	}
+
+	actionManager := action.NewActionManager(ctx, *organisation, logger, workflowFile, githubClient.Repositories)
 
 	switch command {
 	case distributeCmd.FullCommand():
