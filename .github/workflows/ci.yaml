@@ -42,15 +42,23 @@ jobs:
           key: ${{ runner.os }}-actions-mobydick-bin-${{ hashFiles('bin/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-actions-mobydick-bin-
+      - name: Install
+        working-directory: ./bin
+        run: go mod download
       - name: Lint
         working-directory: ./bin
         run: |
           if [ -n "$(gofmt -l .)" ]; then
             exit 1
           fi
-      - name: Install
+      - name: Verify
         working-directory: ./bin
-        run: go mod download
+        run: |
+          go generate ./...
+          if [ $(git diff | wc -l) -gt 0 ]; then
+            echo "Generated code not up to date"
+            exit 1
+          fi
       - name: Test
         working-directory: ./bin
         run: go test -v ./...

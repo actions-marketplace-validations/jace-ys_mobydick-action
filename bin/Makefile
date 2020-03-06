@@ -1,9 +1,9 @@
 include .env
 
-.PHONY: bin/action
+.PHONY: run
 
-bin/action:
-	cd bin && go run main.go distribute \
+run:
+	@go run main.go distribute \
 		--organisation ${ORGANISATION} \
 		--token ${TOKEN} \
 		--private

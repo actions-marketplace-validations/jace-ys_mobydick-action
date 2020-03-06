@@ -2,96 +2,51 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/google/go-github/v29/github"
 	"golang.org/x/oauth2"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/jace-ys/actions-mobydick/bin/action"
 )
 
 var (
-	action       = kingpin.New("action", "Command-line interface to manage this GitHub Action.")
-	organisation = action.Flag("organisation", "Name of organisation in GitHub.").Required().String()
-	token        = action.Flag("token", "Token used for authenticating with GitHub.").Required().String()
+	actionCmd    = kingpin.New("action", "Command-line interface to manage this GitHub Action.")
+	organisation = actionCmd.Flag("organisation", "Name of organisation in GitHub.").Required().String()
+	token        = actionCmd.Flag("token", "Token used for authenticating with GitHub.").Required().String()
 
-	distribute = action.Command("distribute", "Distribute this GitHub Action to all repositories in the organisation.")
-	private    = distribute.Flag("private", "Only distribute GitHub Action to private repositories (default: false).").Default("false").Bool()
+	distributeCmd = actionCmd.Command("distribute", "Distribute this GitHub Action to all repositories in the organisation.")
+	concurrency   = distributeCmd.Flag("concurrency", "Size of worker pool to perform concurrent work.").Default("5").Int()
+	private       = distributeCmd.Flag("private", "Only distribute GitHub Action to private repositories (default: false).").Default("false").Bool()
 )
 
 func main() {
-	command := kingpin.MustParse(action.Parse(os.Args[1:]))
+	command := kingpin.MustParse(actionCmd.Parse(os.Args[1:]))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	actionManager := NewActionManager(ctx, *organisation, *token)
+	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	logger = log.With(logger, "caller", log.DefaultCaller)
 
-	switch command {
-	case distribute.FullCommand():
-		err := actionManager.DistributeCommand(ctx, *private)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-}
-
-type actionManager struct {
-	githubClient *github.Client
-	organisation string
-}
-
-func NewActionManager(ctx context.Context, organisation, token string) *actionManager {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{
-			AccessToken: token,
+			AccessToken: *token,
 		},
 	)
 	githubClient := github.NewClient(oauth2.NewClient(ctx, ts))
 
-	return &actionManager{
-		githubClient: githubClient,
-		organisation: organisation,
-	}
-}
+	actionManager := action.NewActionManager(ctx, *organisation, logger, githubClient.Repositories)
 
-func (am *actionManager) DistributeCommand(ctx context.Context, private bool) error {
-	repositories, err := am.ListRepositories(ctx, private)
-	if err != nil {
-		return fmt.Errorf("failed to list repositories: %w", err)
-	}
-
-	for i, repository := range repositories {
-		log.Printf("%d: %s\n", i+1, *repository.FullName)
-	}
-
-	return nil
-}
-
-func (am *actionManager) ListRepositories(ctx context.Context, private bool) ([]*github.Repository, error) {
-	filter := "all"
-	if private {
-		filter = "private"
-	}
-
-	options := &github.RepositoryListByOrgOptions{
-		Type:        filter,
-		ListOptions: github.ListOptions{PerPage: 100},
-	}
-
-	var list []*github.Repository
-	for {
-		repositories, response, err := am.githubClient.Repositories.ListByOrg(ctx, am.organisation, options)
+	switch command {
+	case distributeCmd.FullCommand():
+		err := actionManager.DistributeCommand(ctx, *concurrency, *private)
 		if err != nil {
-			return nil, err
+			level.Error(logger).Log("error", err)
+			os.Exit(1)
 		}
-		list = append(list, repositories...)
-		if response.NextPage == 0 {
-			break
-		}
-		options.Page = response.NextPage
 	}
-
-	return list, nil
 }
