@@ -11,7 +11,7 @@ import (
 	"golang.org/x/oauth2"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/jace-ys/actions-mobydick/bin/action"
+	"github.com/jace-ys/actions-mobydick/bin/pkg/action"
 )
 
 var (

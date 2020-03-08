@@ -9,8 +9,8 @@ import (
 	"github.com/google/go-github/v29/github"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jace-ys/actions-mobydick/bin/action"
-	"github.com/jace-ys/actions-mobydick/bin/action/actionfakes"
+	"github.com/jace-ys/actions-mobydick/bin/pkg/action"
+	"github.com/jace-ys/actions-mobydick/bin/pkg/action/actionfakes"
 )
 
 func TestActionManager(t *testing.T) {
@@ -30,7 +30,7 @@ func TestActionManager(t *testing.T) {
 			repositories, err := actionManager.ListRepositories(ctx, true)
 
 			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
-			assert.NotNil(t, err)
+			assert.Error(t, err)
 			assert.Equal(t, 0, len(repositories))
 		})
 
@@ -42,7 +42,7 @@ func TestActionManager(t *testing.T) {
 			repositories, err := actionManager.ListRepositories(ctx, true)
 
 			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, 2, len(repositories))
 		})
 
@@ -55,7 +55,7 @@ func TestActionManager(t *testing.T) {
 			repositories, err := actionManager.ListRepositories(ctx, true)
 
 			assert.Equal(t, 2, repositoriesService.ListByOrgCallCount())
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, 4, len(repositories))
 		})
 	})

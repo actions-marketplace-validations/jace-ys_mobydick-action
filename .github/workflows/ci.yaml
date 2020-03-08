@@ -61,7 +61,7 @@ jobs:
           fi
       - name: Test
         working-directory: ./bin
-        run: go test -v ./...
+        run: go test -v -race ./...
       - name: Build
         working-directory: ./bin
         run: go build .
