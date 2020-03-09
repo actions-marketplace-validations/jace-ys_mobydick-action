@@ -1,12 +1,9 @@
 include .env
 
-.PHONY: run generate test
+.PHONY: build generate test
 
-run:
-	@go run main.go distribute \
-		--organisation ${ORGANISATION} \
-		--token ${TOKEN} \
-		--private
+build:
+	@go build -o action
 
 generate:
 	@go generate ./...
