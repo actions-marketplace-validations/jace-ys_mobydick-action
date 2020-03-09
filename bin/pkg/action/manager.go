@@ -8,6 +8,9 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/go-github/v29/github"
+
+	"github.com/jace-ys/actions-mobydick/bin/pkg/worker"
+	"github.com/jace-ys/actions-mobydick/bin/pkg/workflow"
 )
 
 //counterfeiter:generate . RepositoriesService
@@ -16,36 +19,60 @@ type RepositoriesService interface {
 	CreateFile(ctx context.Context, owner, repo, path string, opts *github.RepositoryContentFileOptions) (*github.RepositoryContentResponse, *github.Response, error)
 }
 
-type actionManager struct {
-	organisation        string
+//counterfeiter:generate . WorkerPool
+type WorkerPool interface {
+	Work(ctx context.Context, jobs []worker.Job) []worker.Result
+}
+
+type ActionManager struct {
 	logger              log.Logger
-	workflowFile        []byte
+	organisation        string
+	workflowFile        *workflow.WorkflowFile
+	workerPool          WorkerPool
 	repositoriesService RepositoriesService
 }
 
-func NewActionManager(ctx context.Context, organisation string, logger log.Logger, workflowFile []byte, repositories RepositoriesService) *actionManager {
-	return &actionManager{
-		organisation:        organisation,
+func NewActionManager(ctx context.Context, logger log.Logger, organisation string, workflowFile *workflow.WorkflowFile, workerPool WorkerPool, repositories RepositoriesService) *ActionManager {
+	return &ActionManager{
 		logger:              logger,
+		organisation:        organisation,
 		workflowFile:        workflowFile,
+		workerPool:          workerPool,
 		repositoriesService: repositories,
 	}
 }
 
-func (am *actionManager) DistributeCommand(ctx context.Context, concurrency int, private bool) error {
+func (am *ActionManager) DistributeCommand(ctx context.Context, concurrency int, private bool) error {
 	repositories, err := am.ListRepositories(ctx, private)
 	if err != nil {
 		return fmt.Errorf("failed to list repositories: %w", err)
 	}
 
-	for i, repository := range repositories {
-		level.Info(am.logger).Log("count", i+1, "repository", *repository.FullName)
+	var jobs []worker.Job
+	for _, repository := range repositories {
+		jobs = append(jobs, &createFileJob{
+			handler:    am,
+			repository: *repository.Name,
+			path:       am.workflowFile.Path,
+			content:    am.workflowFile.Content,
+		})
 	}
+
+	results := am.workerPool.Work(ctx, jobs)
+
+	var errors []error
+	for _, result := range results {
+		if result.Err != nil {
+			errors = append(errors, result.Err)
+		}
+	}
+
+	level.Info(am.logger).Log("success", len(results)-len(errors), "failures", len(errors))
 
 	return nil
 }
 
-func (am *actionManager) ListRepositories(ctx context.Context, private bool) ([]*github.Repository, error) {
+func (am *ActionManager) ListRepositories(ctx context.Context, private bool) ([]*github.Repository, error) {
 	filter := "all"
 	if private {
 		filter = "private"
@@ -72,9 +99,9 @@ func (am *actionManager) ListRepositories(ctx context.Context, private bool) ([]
 	return list, nil
 }
 
-func (am *actionManager) CreateFile(ctx context.Context, repository, path string, content []byte) error {
+func (am *ActionManager) CreateFile(ctx context.Context, repository, path string, content []byte) error {
 	opts := &github.RepositoryContentFileOptions{
-		Message: github.String("This is my commit message"),
+		Message: github.String("GitHub Actions workflow for Mobydick"),
 		Content: content,
 	}
 
@@ -83,5 +110,20 @@ func (am *actionManager) CreateFile(ctx context.Context, repository, path string
 		return err
 	}
 
+	return nil
+}
+
+type createFileJob struct {
+	handler    *ActionManager
+	repository string
+	path       string
+	content    []byte
+}
+
+func (job *createFileJob) Process(ctx context.Context) error {
+	err := job.handler.CreateFile(ctx, job.repository, job.path, job.content)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
 	return nil
 }

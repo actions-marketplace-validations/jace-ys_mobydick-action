@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 
 	"github.com/go-kit/kit/log"
@@ -12,6 +11,8 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/jace-ys/actions-mobydick/bin/pkg/action"
+	"github.com/jace-ys/actions-mobydick/bin/pkg/worker"
+	"github.com/jace-ys/actions-mobydick/bin/pkg/workflow"
 )
 
 var (
@@ -34,6 +35,14 @@ func main() {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	logger = log.With(logger, "caller", log.DefaultCaller)
 
+	workflowFile, err := workflow.NewWorkflowFile(*file)
+	if err != nil {
+		level.Error(logger).Log("error", err)
+		os.Exit(1)
+	}
+
+	workerPool := worker.NewWorkerPool(*concurrency)
+
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{
 			AccessToken: *token,
@@ -41,13 +50,7 @@ func main() {
 	)
 	githubClient := github.NewClient(oauth2.NewClient(ctx, ts))
 
-	workflowFile, err := ioutil.ReadFile(*file)
-	if err != nil {
-		level.Error(logger).Log("error", err)
-		os.Exit(1)
-	}
-
-	actionManager := action.NewActionManager(ctx, *organisation, logger, workflowFile, githubClient.Repositories)
+	actionManager := action.NewActionManager(ctx, logger, *organisation, workflowFile, workerPool, githubClient.Repositories)
 
 	switch command {
 	case distributeCmd.FullCommand():
