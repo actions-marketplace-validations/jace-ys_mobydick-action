@@ -19,17 +19,12 @@ type RepositoriesService interface {
 	CreateFile(ctx context.Context, owner, repo, path string, opts *github.RepositoryContentFileOptions) (*github.RepositoryContentResponse, *github.Response, error)
 }
 
-//counterfeiter:generate . WorkerPool
-type WorkerPool interface {
-	Work(ctx context.Context, jobs []worker.Job) []worker.Result
-}
-
 type ActionManager struct {
 	logger              log.Logger
 	organisation        string
 	dryRun              bool
 	workflowFile        *workflow.WorkflowFile
-	workerPool          WorkerPool
+	workerPool          *worker.WorkerPool
 	repositoriesService RepositoriesService
 }
 
@@ -39,7 +34,7 @@ func NewActionManager(
 	organisation string,
 	dryRun bool,
 	workflowFile *workflow.WorkflowFile,
-	workerPool WorkerPool,
+	workerPool *worker.WorkerPool,
 	repositories RepositoriesService,
 ) *ActionManager {
 	return &ActionManager{
@@ -52,10 +47,10 @@ func NewActionManager(
 	}
 }
 
-func (am *ActionManager) DistributeCommand(ctx context.Context, concurrency int, private bool) error {
+func (am *ActionManager) DistributeCommand(ctx context.Context, private bool) (int, int, error) {
 	repositories, err := am.ListRepositories(ctx, private)
 	if err != nil {
-		return fmt.Errorf("failed to list repositories: %w", err)
+		return 0, 0, fmt.Errorf("failed to list repositories: %w", err)
 	}
 
 	var jobs []worker.Job
@@ -70,16 +65,17 @@ func (am *ActionManager) DistributeCommand(ctx context.Context, concurrency int,
 
 	results := am.workerPool.Work(ctx, jobs)
 
-	var errors []error
+	var success []worker.Result
+	var failures []worker.Result
 	for _, result := range results {
 		if result.Err != nil {
-			errors = append(errors, result.Err)
+			failures = append(failures, result)
+		} else {
+			success = append(success, result)
 		}
 	}
 
-	level.Info(am.logger).Log("success", len(results)-len(errors), "failures", len(errors))
-
-	return nil
+	return len(success), len(failures), nil
 }
 
 func (am *ActionManager) ListRepositories(ctx context.Context, private bool) ([]*github.Repository, error) {

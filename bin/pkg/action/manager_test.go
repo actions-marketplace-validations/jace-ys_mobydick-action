@@ -21,10 +21,9 @@ func TestActionManager(t *testing.T) {
 
 	logger := log.NewNopLogger()
 
-	workerPool := worker.NewWorkerPool(1)
-
 	t.Run("ListRepositories", func(t *testing.T) {
-		var workflowFile *workflow.WorkflowFile
+		workerPool := &worker.WorkerPool{}
+		workflowFile := &workflow.WorkflowFile{}
 
 		t.Run("Error", func(t *testing.T) {
 			repositoriesService := new(actionfakes.FakeRepositoriesService)
@@ -63,8 +62,99 @@ func TestActionManager(t *testing.T) {
 			assert.Equal(t, 4, len(repositories))
 		})
 	})
+
+	t.Run("CreateFile", func(t *testing.T) {
+		workflowFile := &workflow.WorkflowFile{
+			Path:    "path/to/workflow.yaml",
+			Content: []byte("content"),
+		}
+
+		t.Run("Error", func(t *testing.T) {
+			repositoriesService := new(actionfakes.FakeRepositoriesService)
+			repositoriesService.CreateFileReturnsOnCall(0, &github.RepositoryContentResponse{}, &github.Response{}, fmt.Errorf("could not create file"))
+
+			workerPool := worker.NewWorkerPool(1)
+
+			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
+			err := actionManager.CreateFile(ctx, "repository", workflowFile.Path, workflowFile.Content)
+
+			assert.Equal(t, 1, repositoriesService.CreateFileCallCount())
+			assert.Error(t, err)
+		})
+
+		t.Run("DryRun", func(t *testing.T) {
+			repositoriesService := new(actionfakes.FakeRepositoriesService)
+
+			workerPool := worker.NewWorkerPool(1)
+
+			actionManager := action.NewActionManager(ctx, logger, "organisation", true, workflowFile, workerPool, repositoriesService)
+			err := actionManager.CreateFile(ctx, "repository", workflowFile.Path, workflowFile.Content)
+
+			assert.Equal(t, 0, repositoriesService.CreateFileCallCount())
+			assert.NoError(t, err)
+		})
+
+		t.Run("Success", func(t *testing.T) {
+			repositoriesService := new(actionfakes.FakeRepositoriesService)
+			repositoriesService.CreateFileReturnsOnCall(0, &github.RepositoryContentResponse{}, &github.Response{}, nil)
+
+			workerPool := worker.NewWorkerPool(1)
+
+			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
+			err := actionManager.CreateFile(ctx, "repository", workflowFile.Path, workflowFile.Content)
+
+			assert.Equal(t, 1, repositoriesService.CreateFileCallCount())
+			assert.NoError(t, err)
+		})
+	})
+
+	t.Run("DistributeCommand", func(t *testing.T) {
+		workflowFile := &workflow.WorkflowFile{
+			Path:    "path/to/workflow.yaml",
+			Content: []byte("content"),
+		}
+
+		t.Run("Failure", func(t *testing.T) {
+			repositoriesService := new(actionfakes.FakeRepositoriesService)
+			repositoriesService.ListByOrgReturnsOnCall(0, fakeRepositories(1), &github.Response{NextPage: 0}, nil)
+			repositoriesService.CreateFileReturnsOnCall(0, &github.RepositoryContentResponse{}, &github.Response{}, fmt.Errorf("failed to create file"))
+
+			workerPool := worker.NewWorkerPool(1)
+
+			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
+			success, failures, err := actionManager.DistributeCommand(ctx, true)
+
+			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
+			assert.Equal(t, 1, repositoriesService.CreateFileCallCount())
+			assert.NoError(t, err)
+			assert.Equal(t, 0, success)
+			assert.Equal(t, 1, failures)
+		})
+
+		t.Run("Success", func(t *testing.T) {
+			repositoriesService := new(actionfakes.FakeRepositoriesService)
+			repositoriesService.ListByOrgReturnsOnCall(0, fakeRepositories(1), &github.Response{NextPage: 0}, nil)
+			repositoriesService.CreateFileReturnsOnCall(0, &github.RepositoryContentResponse{}, &github.Response{}, nil)
+
+			workerPool := worker.NewWorkerPool(1)
+
+			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
+			success, failures, err := actionManager.DistributeCommand(ctx, true)
+
+			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
+			assert.Equal(t, 1, repositoriesService.CreateFileCallCount())
+			assert.NoError(t, err)
+			assert.Equal(t, 1, success)
+			assert.Equal(t, 0, failures)
+		})
+	})
 }
 
 func fakeRepositories(num int) []*github.Repository {
-	return make([]*github.Repository, num)
+	var repositories []*github.Repository
+	name := "repository"
+	for i := 0; i < num; i++ {
+		repositories = append(repositories, &github.Repository{Name: &name})
+	}
+	return repositories
 }

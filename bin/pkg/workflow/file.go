@@ -6,8 +6,8 @@ import (
 )
 
 type WorkflowFile struct {
-	Content []byte
 	Path    string
+	Content []byte
 }
 
 func NewWorkflowFile(file string) (*WorkflowFile, error) {
@@ -17,7 +17,7 @@ func NewWorkflowFile(file string) (*WorkflowFile, error) {
 	}
 
 	return &WorkflowFile{
-		Content: content,
 		Path:    fmt.Sprintf(".github/workflows/%s", file),
+		Content: content,
 	}, nil
 }

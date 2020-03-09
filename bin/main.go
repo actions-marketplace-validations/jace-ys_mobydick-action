@@ -55,10 +55,11 @@ func main() {
 
 	switch command {
 	case distributeCmd.FullCommand():
-		err := actionManager.DistributeCommand(ctx, *concurrency, *private)
+		success, failures, err := actionManager.DistributeCommand(ctx, *private)
 		if err != nil {
 			level.Error(logger).Log("error", err)
 			os.Exit(1)
 		}
+		level.Info(logger).Log("success", success, "failures", failures)
 	}
 }
