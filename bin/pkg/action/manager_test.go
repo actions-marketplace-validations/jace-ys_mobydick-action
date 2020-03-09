@@ -30,7 +30,7 @@ func TestActionManager(t *testing.T) {
 			repositoriesService := new(actionfakes.FakeRepositoriesService)
 			repositoriesService.ListByOrgReturnsOnCall(0, fakeRepositories(0), &github.Response{NextPage: 0}, fmt.Errorf("could not list repositories"))
 
-			actionManager := action.NewActionManager(ctx, logger, "organisation", workflowFile, workerPool, repositoriesService)
+			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
 			repositories, err := actionManager.ListRepositories(ctx, true)
 
 			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
@@ -42,7 +42,7 @@ func TestActionManager(t *testing.T) {
 			repositoriesService := new(actionfakes.FakeRepositoriesService)
 			repositoriesService.ListByOrgReturnsOnCall(0, fakeRepositories(2), &github.Response{NextPage: 0}, nil)
 
-			actionManager := action.NewActionManager(ctx, logger, "organisation", workflowFile, workerPool, repositoriesService)
+			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
 			repositories, err := actionManager.ListRepositories(ctx, true)
 
 			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
@@ -55,7 +55,7 @@ func TestActionManager(t *testing.T) {
 			repositoriesService.ListByOrgReturnsOnCall(0, fakeRepositories(2), &github.Response{NextPage: 1}, nil)
 			repositoriesService.ListByOrgReturnsOnCall(1, fakeRepositories(2), &github.Response{NextPage: 0}, nil)
 
-			actionManager := action.NewActionManager(ctx, logger, "organisation", workflowFile, workerPool, repositoriesService)
+			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
 			repositories, err := actionManager.ListRepositories(ctx, true)
 
 			assert.Equal(t, 2, repositoriesService.ListByOrgCallCount())

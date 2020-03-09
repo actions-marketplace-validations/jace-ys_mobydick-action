@@ -27,15 +27,25 @@ type WorkerPool interface {
 type ActionManager struct {
 	logger              log.Logger
 	organisation        string
+	dryRun              bool
 	workflowFile        *workflow.WorkflowFile
 	workerPool          WorkerPool
 	repositoriesService RepositoriesService
 }
 
-func NewActionManager(ctx context.Context, logger log.Logger, organisation string, workflowFile *workflow.WorkflowFile, workerPool WorkerPool, repositories RepositoriesService) *ActionManager {
+func NewActionManager(
+	ctx context.Context,
+	logger log.Logger,
+	organisation string,
+	dryRun bool,
+	workflowFile *workflow.WorkflowFile,
+	workerPool WorkerPool,
+	repositories RepositoriesService,
+) *ActionManager {
 	return &ActionManager{
 		logger:              logger,
 		organisation:        organisation,
+		dryRun:              dryRun,
 		workflowFile:        workflowFile,
 		workerPool:          workerPool,
 		repositoriesService: repositories,
@@ -100,6 +110,11 @@ func (am *ActionManager) ListRepositories(ctx context.Context, private bool) ([]
 }
 
 func (am *ActionManager) CreateFile(ctx context.Context, repository, path string, content []byte) error {
+	if am.dryRun {
+		level.Info(am.logger).Log("event", "create_file.dry_run", "repository", repository)
+		return nil
+	}
+
 	opts := &github.RepositoryContentFileOptions{
 		Message: github.String("GitHub Actions workflow for Mobydick"),
 		Content: content,
@@ -107,9 +122,11 @@ func (am *ActionManager) CreateFile(ctx context.Context, repository, path string
 
 	_, _, err := am.repositoriesService.CreateFile(ctx, am.organisation, repository, path, opts)
 	if err != nil {
+		level.Info(am.logger).Log("event", "create_file.failure", "repository", repository, "error", err)
 		return err
 	}
 
+	level.Info(am.logger).Log("event", "create_file.success", "repository", repository)
 	return nil
 }
 
