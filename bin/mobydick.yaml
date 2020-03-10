@@ -5,4 +5,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: jace-ys/actions-mobydick@v1
+      - uses: jace-ys/mobydick-action@{{ .Version }}

@@ -23,7 +23,7 @@ func TestActionManager(t *testing.T) {
 
 	t.Run("ListRepositories", func(t *testing.T) {
 		workerPool := &worker.WorkerPool{}
-		workflowFile := &workflow.WorkflowFile{}
+		workflowFile := &action.WorkflowFile{}
 
 		t.Run("Error", func(t *testing.T) {
 			repositoriesService := new(actionfakes.FakeRepositoriesService)
@@ -64,7 +64,7 @@ func TestActionManager(t *testing.T) {
 	})
 
 	t.Run("CreateFile", func(t *testing.T) {
-		workflowFile := &workflow.WorkflowFile{
+		workflowFile := &action.WorkflowFile{
 			Path:    "path/to/workflow.yaml",
 			Content: []byte("content"),
 		}
@@ -109,7 +109,7 @@ func TestActionManager(t *testing.T) {
 	})
 
 	t.Run("DistributeCommand", func(t *testing.T) {
-		workflowFile := &workflow.WorkflowFile{
+		workflowFile := &action.WorkflowFile{
 			Path:    "path/to/workflow.yaml",
 			Content: []byte("content"),
 		}
@@ -122,7 +122,7 @@ func TestActionManager(t *testing.T) {
 			workerPool := worker.NewWorkerPool(1)
 
 			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
-			success, failures, err := actionManager.DistributeCommand(ctx, true)
+			success, failures, err := actionManager.Distribute(ctx, true)
 
 			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
 			assert.Equal(t, 1, repositoriesService.CreateFileCallCount())
@@ -139,7 +139,7 @@ func TestActionManager(t *testing.T) {
 			workerPool := worker.NewWorkerPool(1)
 
 			actionManager := action.NewActionManager(ctx, logger, "organisation", false, workflowFile, workerPool, repositoriesService)
-			success, failures, err := actionManager.DistributeCommand(ctx, true)
+			success, failures, err := actionManager.Distribute(ctx, true)
 
 			assert.Equal(t, 1, repositoriesService.ListByOrgCallCount())
 			assert.Equal(t, 1, repositoriesService.CreateFileCallCount())

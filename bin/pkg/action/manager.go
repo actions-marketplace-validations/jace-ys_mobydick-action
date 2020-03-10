@@ -23,7 +23,7 @@ type ActionManager struct {
 	logger              log.Logger
 	organisation        string
 	dryRun              bool
-	workflowFile        *workflow.WorkflowFile
+	workflowFile        *WorkflowFile
 	workerPool          *worker.WorkerPool
 	repositoriesService RepositoriesService
 }
@@ -33,7 +33,7 @@ func NewActionManager(
 	logger log.Logger,
 	organisation string,
 	dryRun bool,
-	workflowFile *workflow.WorkflowFile,
+	workflowFile *WorkflowFile,
 	workerPool *worker.WorkerPool,
 	repositories RepositoriesService,
 ) *ActionManager {
@@ -47,7 +47,7 @@ func NewActionManager(
 	}
 }
 
-func (am *ActionManager) DistributeCommand(ctx context.Context, private bool) (int, int, error) {
+func (am *ActionManager) Distribute(ctx context.Context, private bool) (int, int, error) {
 	repositories, err := am.ListRepositories(ctx, private)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to list repositories: %w", err)

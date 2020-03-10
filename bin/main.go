@@ -23,6 +23,7 @@ var (
 	distributeCmd = actionCmd.Command("distribute", "Distribute this GitHub Action to all repositories in the organisation.")
 	concurrency   = distributeCmd.Flag("concurrency", "Size of worker pool to perform concurrent work.").Default("5").Int()
 	file          = distributeCmd.Flag("file", "Workflow file to commit into repositories.").Default("mobydick.yaml").String()
+	version       = distributeCmd.Flag("version", "Version of GitHub Action to distribute.").Default("v1.0.0").String()
 	private       = distributeCmd.Flag("private", "Only distribute GitHub Action to private repositories.").Default("false").Bool()
 	dryRun        = distributeCmd.Flag("dry-run", "Perform a dry run, showing all the repositories that will be committed to.").Default("false").Bool()
 )
@@ -36,7 +37,7 @@ func main() {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	logger = log.With(logger, "caller", log.DefaultCaller)
 
-	workflowFile, err := workflow.NewWorkflowFile(*file)
+	workflowFile, err := action.NewWorkflowFile(*file, *version)
 	if err != nil {
 		level.Error(logger).Log("error", err)
 		os.Exit(1)
@@ -55,7 +56,7 @@ func main() {
 
 	switch command {
 	case distributeCmd.FullCommand():
-		success, failures, err := actionManager.DistributeCommand(ctx, *private)
+		success, failures, err := actionManager.Distribute(ctx, *private)
 		if err != nil {
 			level.Error(logger).Log("error", err)
 			os.Exit(1)

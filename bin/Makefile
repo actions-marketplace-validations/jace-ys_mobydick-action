@@ -1,5 +1,3 @@
-include .env
-
 .PHONY: build generate test
 
 build:
