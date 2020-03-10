@@ -1,10 +1,13 @@
-.PHONY: build generate test
+.PHONY: build generate format test
 
 build:
-	@go build -o action
+	go build -o action
 
 generate:
-	@go generate ./...
+	go generate ./...
+
+format:
+	go fmt ./...
 
 test:
-	@go test -v ./...
+	go test -v ./...

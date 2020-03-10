@@ -15,15 +15,15 @@ import (
 )
 
 var (
-	actionCmd    = kingpin.New("action", "Command-line interface to manage this GitHub Action.")
+	actionCmd    = kingpin.New("action", "Command-line interface for managing this GitHub Action.")
 	organisation = actionCmd.Flag("organisation", "Name of organisation in GitHub.").Required().String()
 	token        = actionCmd.Flag("token", "Token used for authenticating with GitHub.").Required().String()
 
 	distributeCmd = actionCmd.Command("distribute", "Distribute this GitHub Action to all repositories in the organisation.")
 	concurrency   = distributeCmd.Flag("concurrency", "Size of worker pool to perform concurrent work.").Default("5").Int()
 	file          = distributeCmd.Flag("file", "Workflow file to commit into repositories.").Default("mobydick.yaml").String()
-	version       = distributeCmd.Flag("version", "Version of GitHub Action to distribute.").Default("v1.0.0").String()
-	private       = distributeCmd.Flag("private", "Only distribute GitHub Action to private repositories.").Default("false").Bool()
+	version       = distributeCmd.Flag("version", "Version of this GitHub Action to distribute.").Default("v1.0.0").String()
+	private       = distributeCmd.Flag("private", "Only distribute this GitHub Action to private repositories.").Default("false").Bool()
 	dryRun        = distributeCmd.Flag("dry-run", "Perform a dry run, showing all the repositories that will be committed to.").Default("false").Bool()
 )
 

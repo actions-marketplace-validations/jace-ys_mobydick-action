@@ -1,3 +1,5 @@
+name: ci
+
 on: [push]
 
 jobs:
@@ -15,22 +17,27 @@ jobs:
           key: ${{ runner.os }}-mobydick-action-build-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-mobydick-action-build-
+
       - name: Lint
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: -- --check
+
       - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release
+
       - name: Image
         run: docker build .
+
   bin:
     runs-on: ubuntu-latest
     steps:
@@ -44,26 +51,27 @@ jobs:
           key: ${{ runner.os }}-mobydick-action-bin-${{ hashFiles('bin/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-mobydick-action-bin-
+
       - name: Install
         working-directory: ./bin
         run: go mod download
+
       - name: Lint
         working-directory: ./bin
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            exit 1
-          fi
+          make format
+          git diff --exit-code --name-only
+
       - name: Verify
         working-directory: ./bin
         run: |
-          go generate ./...
-          if [ $(git diff | wc -l) -gt 0 ]; then
-            echo "Generated code not up to date"
-            exit 1
-          fi
+          make generate
+          git add -N . && git diff --exit-code --name-only
+
       - name: Test
         working-directory: ./bin
-        run: go test -v -race ./...
+        run: make test
+
       - name: Build
         working-directory: ./bin
-        run: go build .
+        run: make build
