@@ -1,4 +1,4 @@
-module github.com/jace-ys/actions-mobydick/bin
+module github.com/jace-ys/mobydick-action/bin
 
 go 1.14
 

@@ -10,9 +10,8 @@ import (
 	"golang.org/x/oauth2"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/jace-ys/actions-mobydick/bin/pkg/action"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/worker"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/workflow"
+	"github.com/jace-ys/mobydick-action/bin/pkg/action"
+	"github.com/jace-ys/mobydick-action/bin/pkg/worker"
 )
 
 var (

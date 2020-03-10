@@ -1,5 +1,5 @@
 [package]
-name = "mobydick"
+name = "mobydick-action"
 version = "0.1.0"
 authors = ["jace-ys <jaceys.tan@gmail.com>"]
 edition = "2018"

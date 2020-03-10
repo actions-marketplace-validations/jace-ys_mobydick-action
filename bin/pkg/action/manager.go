@@ -9,8 +9,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/go-github/v29/github"
 
-	"github.com/jace-ys/actions-mobydick/bin/pkg/worker"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/workflow"
+	"github.com/jace-ys/mobydick-action/bin/pkg/worker"
 )
 
 //counterfeiter:generate . RepositoriesService

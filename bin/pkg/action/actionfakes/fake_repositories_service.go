@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/google/go-github/v29/github"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/action"
+	"github.com/jace-ys/mobydick-action/bin/pkg/action"
 )
 
 type FakeRepositoriesService struct {

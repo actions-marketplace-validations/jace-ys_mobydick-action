@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jace-ys/actions-mobydick/bin/pkg/worker"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/worker/workerfakes"
+	"github.com/jace-ys/mobydick-action/bin/pkg/worker"
+	"github.com/jace-ys/mobydick-action/bin/pkg/worker/workerfakes"
 )
 
 var (

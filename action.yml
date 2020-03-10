@@ -1,5 +1,8 @@
-name: Mobydick
-description: Run an audit check to validate Dockerfile versions
+name: Mobydick Action
+description: GitHub Action to validate that Docker images are compatible with Dependabot's update strategy.
+branding:
+  icon: anchor
+  color: blue
 runs:
   using: docker
   image: Dockerfile

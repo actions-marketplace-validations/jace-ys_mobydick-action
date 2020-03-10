@@ -9,10 +9,9 @@ import (
 	"github.com/google/go-github/v29/github"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jace-ys/actions-mobydick/bin/pkg/action"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/action/actionfakes"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/worker"
-	"github.com/jace-ys/actions-mobydick/bin/pkg/workflow"
+	"github.com/jace-ys/mobydick-action/bin/pkg/action"
+	"github.com/jace-ys/mobydick-action/bin/pkg/action/actionfakes"
+	"github.com/jace-ys/mobydick-action/bin/pkg/worker"
 )
 
 func TestActionManager(t *testing.T) {

@@ -12,9 +12,9 @@ jobs:
       - uses: actions/cache@v1
         with:
           path: ./target
-          key: ${{ runner.os }}-actions-mobydick-build-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-mobydick-action-build-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-actions-mobydick-build-
+            ${{ runner.os }}-mobydick-action-build-
       - name: Lint
         uses: actions-rs/cargo@v1
         with:
@@ -29,19 +29,21 @@ jobs:
         with:
           command: build
           args: --release
+      - name: Image
+        run: docker build .
   bin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1
         with:
-          go-version: "1.13"
+          go-version: "1.14"
       - uses: actions/cache@v1
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-actions-mobydick-bin-${{ hashFiles('bin/go.sum') }}
+          key: ${{ runner.os }}-mobydick-action-bin-${{ hashFiles('bin/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-actions-mobydick-bin-
+            ${{ runner.os }}-mobydick-action-bin-
       - name: Install
         working-directory: ./bin
         run: go mod download
