@@ -1,17 +1,17 @@
 [![ci-badge]][ci-workflow]
 
-[ci-badge]: https://github.com/jace-ys/mobydick-action/workflows/.github/workflows/ci.yml/badge.svg
-[ci-workflow]: https://github.com/jace-ys/mobydick-action/actions?query=workflow%3A.github%2Fworkflows%2Fci.yml
+[ci-badge]: https://github.com/jace-ys/mobydick-action/workflows/ci/badge.svg
+[ci-workflow]: https://github.com/jace-ys/mobydick-action/actions?query=workflow%3Aci
 
 # Mobydick Action
 
-GitHub Action to validate that Docker images are compatible with [Dependabot's](https://dependabot.com/) update strategy.
+GitHub Action to validate that Dockerfiles are compatible with [Dependabot's](https://dependabot.com/) update strategy.
 
 ## About
 
-Mobydick Action is a Rust binary packaged as a Docker container action. It verifies that any Dockerfiles in a repository uses images that are compatible with [Dependabot's update strategy for Dockerfiles](https://dependabot.com/blog/dependabot-now-supports-docker/).
+Mobydick Action is a Rust binary packaged as a Docker container action. It verifies that any Dockerfiles in a repository uses base images that are compatible with [Dependabot's update strategy for Dockerfiles](https://dependabot.com/blog/dependabot-now-supports-docker/).
 
-This will enable Dependabot to do its job of creating pull requests to bump images whenever a new version is released, which helps minimise the risks that outdated images pose and eliminates the dilemma faced when deciding on what version of an image to use.
+This will enable Dependabot to do its job of creating pull requests to bump a Dockerfile's base images whenever new versions are released, which helps minimise the risks that outdated images pose and eliminates the dilemma faced when deciding on what version of an image to use.
 
 ## CLI
 
